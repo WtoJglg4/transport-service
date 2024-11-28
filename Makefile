@@ -12,4 +12,8 @@ sqlite-rm:
 	docker image rm sqlite-service
 
 build:
-	g++ -o ./bin/main ./cmd/main.cpp -lsqlite3
+	g++ -o ./bin/main ./cmd/main.cpp -lsqlite3 -std=c++11 -Iinternal/queries
+
+
+run: build	
+	./bin/main
