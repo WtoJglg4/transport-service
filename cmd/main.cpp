@@ -165,14 +165,19 @@ void findRoutes(
     string formatted_date = convertToSQLiteFormat(date);
     sqlite3_stmt* stmt;
     // Inserting query parameters into query
-    sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
-    sqlite3_bind_text(stmt, 1, formatted_date.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 4, transportType.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 5, transportType.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 6, ticketPrice.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 7, ticketPrice.c_str(), -1, SQLITE_STATIC);
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, formatted_date.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 4, transportType.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 5, transportType.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 6, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 7, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
     // Do query and print th results
     doAndPrintQueryResult(stmt);
     sqlite3_finalize(stmt);
@@ -186,8 +191,13 @@ void findRoutesByTransport(
     const string& transportType) {
     sqlite3_stmt* stmt;
     // Inserting query parameters into query
-    sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
-    sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC);
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
     // Do query and print th results
     doAndPrintQueryResult(stmt);
     sqlite3_finalize(stmt);
@@ -201,22 +211,19 @@ void findRoutesByPrice(
     const string& ticketPrice) {
     sqlite3_stmt* stmt;
     // Inserting query parameters into query
-    sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
-    sqlite3_bind_text(stmt, 1, ticketPrice.c_str(), -1, SQLITE_STATIC);
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
     // Do query and print th results
     doAndPrintQueryResult(stmt);
     sqlite3_finalize(stmt);
 }
 
-// void insertIfNotExists(sqlite3* db, string queryTemplate, string& field){
-//     sqlite3_stmt* stmt;
-//     // Inserting query parameters into query
-//     sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
-//     sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_STATIC);
-//     sqlite3_bind_text(stmt, 2, field.c_str(), -1, SQLITE_STATIC);
-//     sqlite3_finalize(stmt);
-// }
-
+// insertIfNotExists inserts value into table is value not exists
 void insertIfNotExists(sqlite3* db, const std::string& queryTemplate, const std::string& field) {
     sqlite3_stmt* stmt = nullptr;
     // Preparing query
@@ -237,6 +244,7 @@ void insertIfNotExists(sqlite3* db, const std::string& queryTemplate, const std:
     sqlite3_finalize(stmt);
 }
 
+// insertRoute inserts a new route by specified parameters
 void insertRoute(
     sqlite3* db, 
     string queryTemplate, 
@@ -251,8 +259,8 @@ void insertRoute(
     // Format date from 'dd.mm.yyyy' to 'yyyy-dd-mm'
     string departureDateFormatted = convertToSQLiteFormat(departureDate);
     string arrivalDateFormatted = convertToSQLiteFormat(arrivalDate);
-    cout << "Dates " << departureDateFormatted << " " << arrivalDateFormatted << endl;
-
+    // Insert specified transport_type, source and destination cities 
+    // if they are not exists in corresponding tables
     insertIfNotExists(db, InsertInTranportTypesIfNotExists, transportType);
     insertIfNotExists(db, InsertInDestinationsIfNotExists, source);
     insertIfNotExists(db, InsertInDestinationsIfNotExists, destination);
@@ -280,16 +288,6 @@ void insertRoute(
     }
     // Free resources
     sqlite3_finalize(stmt);
-    
-    // sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 4, distance.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 5, departureDateFormatted.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 6, arrivalDateFormatted.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 7, seatsAvaliable.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_bind_text(stmt, 8, ticketPrice.c_str(), -1, SQLITE_STATIC);
-    // sqlite3_finalize(stmt);
 }
 
 int main() {
