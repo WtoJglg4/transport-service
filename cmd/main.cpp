@@ -27,16 +27,46 @@ string convertToSQLiteFormat(const string& date) {
     return oss.str();
 }
 
-// readRouteParameters prints a Menu and reads corresponding fields
-void readRouteParameters(string& source, string& destination, string& date, string& transportType) {
+// readSelectRouteParameters prints a Menu and reads corresponding fields
+void readSelectRouteParameters(string& source, string& destination, string& date, string& transportType, string& ticketPrice) {
     cout << "Enter source location: ";
     getline(cin, source);
     cout << "Enter destination location: ";
     getline(cin, destination);
-    cout << "Enter preferred date (DD.MM.YYYY): ";
+    cout << "Enter preferred departure date (DD.MM.YYYY): ";
     getline(cin, date);
     cout << "Enter preferred transport type (or leave empty for any): ";
     getline(cin, transportType);
+    cout << "Enter higher ticket price (or leave empty for any): ";
+    getline(cin, ticketPrice);
+}
+
+// readInsertRouteParameters prints a Menu and reads corresponding fields
+void readInsertRouteParameters(
+    string& source, 
+    string& destination, 
+    string& departureDate, 
+    string& arrivalDate,
+    string& transportType, 
+    string& ticketPrice, 
+    string& distance, 
+    string& seatsAvaliable) {
+    cout << "Enter source location: ";
+    getline(cin, source);
+    cout << "Enter destination location: ";
+    getline(cin, destination);
+    cout << "Enter departure date (DD.MM.YYYY): ";
+    getline(cin, departureDate);
+    cout << "Enter arrival date (DD.MM.YYYY): ";
+    getline(cin, arrivalDate);
+    cout << "Enter transport type: ";
+    getline(cin, transportType);
+    cout << "Enter ticket price: ";
+    getline(cin, ticketPrice);
+    cout << "Enter distance: ";
+    getline(cin, distance);
+    cout << "Enter number of avaliable seats: ";
+    getline(cin, seatsAvaliable);
 }
 
 // utf8StringLen counts number of symbols of UTF-8-formated string (not number of bytes)
@@ -129,7 +159,8 @@ void findRoutes(
     const string& source, 
     const string& destination, 
     const string& date, 
-    const string& transportType) {
+    const string& transportType,
+    const string& ticketPrice) {
     // Format date from 'dd.mm.yyyy' to 'yyyy-dd-mm'
     string formatted_date = convertToSQLiteFormat(date);
     sqlite3_stmt* stmt;
@@ -140,13 +171,15 @@ void findRoutes(
     sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 4, transportType.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 5, transportType.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 6, ticketPrice.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 7, ticketPrice.c_str(), -1, SQLITE_STATIC);
     // Do query and print th results
     doAndPrintQueryResult(stmt);
     sqlite3_finalize(stmt);
 }
 
 // findRoutesByTransport makes sql query statement for selecting 
-// available routes with corresponding `transport_type`
+// available routes with specified `transport_type`
 void findRoutesByTransport(
     sqlite3* db, 
     string queryTemplate, 
@@ -160,13 +193,113 @@ void findRoutesByTransport(
     sqlite3_finalize(stmt);
 }
 
+// findRoutesByPrice makes sql query statement for selecting 
+// available routes with specified `ticket_price`
+void findRoutesByPrice(
+    sqlite3* db, 
+    string queryTemplate, 
+    const string& ticketPrice) {
+    sqlite3_stmt* stmt;
+    // Inserting query parameters into query
+    sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
+    sqlite3_bind_text(stmt, 1, ticketPrice.c_str(), -1, SQLITE_STATIC);
+    // Do query and print th results
+    doAndPrintQueryResult(stmt);
+    sqlite3_finalize(stmt);
+}
+
+// void insertIfNotExists(sqlite3* db, string queryTemplate, string& field){
+//     sqlite3_stmt* stmt;
+//     // Inserting query parameters into query
+//     sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr);
+//     sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_STATIC);
+//     sqlite3_bind_text(stmt, 2, field.c_str(), -1, SQLITE_STATIC);
+//     sqlite3_finalize(stmt);
+// }
+
+void insertIfNotExists(sqlite3* db, const std::string& queryTemplate, const std::string& field) {
+    sqlite3_stmt* stmt = nullptr;
+    // Preparing query
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, field.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
+    // Do query
+    int rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        exitWithError(db, "failed to execute statement");
+    }
+    // Free resources
+    sqlite3_finalize(stmt);
+}
+
+void insertRoute(
+    sqlite3* db, 
+    string queryTemplate, 
+    string& source, 
+    string& destination, 
+    string& departureDate, 
+    string& arrivalDate,
+    string& transportType, 
+    string& ticketPrice, 
+    string& distance, 
+    string& seatsAvaliable) {
+    // Format date from 'dd.mm.yyyy' to 'yyyy-dd-mm'
+    string departureDateFormatted = convertToSQLiteFormat(departureDate);
+    string arrivalDateFormatted = convertToSQLiteFormat(arrivalDate);
+    cout << "Dates " << departureDateFormatted << " " << arrivalDateFormatted << endl;
+
+    insertIfNotExists(db, InsertInTranportTypesIfNotExists, transportType);
+    insertIfNotExists(db, InsertInDestinationsIfNotExists, source);
+    insertIfNotExists(db, InsertInDestinationsIfNotExists, destination);
+
+    sqlite3_stmt* stmt;
+    // Inserting query parameters into query
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 4, distance.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 5, departureDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 6, arrivalDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 7, seatsAvaliable.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 8, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
+    // Do query
+    int rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        exitWithError(db, "failed to execute statement");
+    }
+    // Free resources
+    sqlite3_finalize(stmt);
+    
+    // sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 4, distance.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 5, departureDateFormatted.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 6, arrivalDateFormatted.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 7, seatsAvaliable.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_bind_text(stmt, 8, ticketPrice.c_str(), -1, SQLITE_STATIC);
+    // sqlite3_finalize(stmt);
+}
+
 int main() {
-    setlocale(LC_ALL, "");
     sqlite3* db;
     if (sqlite3_open(pathDB, &db) != SQLITE_OK) {
         exitWithError(db, "cannot open database");
     }
-    string source, destination, date, transportType;
+    // Define query parameters
+    string source, destination, departureDate, arrivalDate, 
+    transportType, ticketPrice, distance, seatsAvaliable;
 
     cout << "Welcome to the Route Finder!\n";
 
@@ -177,7 +310,9 @@ int main() {
         cout << "Show all routes - 1\n";
         cout << "Find route by parameters - 2\n";
         cout << "Find route by transport type - 3\n";
-        cout << "Exit - 4\n";
+        cout << "Find route by ticket price - 4\n";
+        cout << "Insert a new route - 5\n";
+        cout << "Exit - 6\n";
         getline(cin, operatoinRaw);
         operation = atoi(operatoinRaw.c_str());
         switch (operation){
@@ -185,8 +320,8 @@ int main() {
                 showAllRoutes(db, SelectAllRoutesQuery);
                 break;
             case 2:
-                readRouteParameters(source, destination, date, transportType);
-                findRoutes(db, SelectRoutesQuery, source, destination, date, transportType);
+                readSelectRouteParameters(source, destination, departureDate, transportType, ticketPrice);
+                findRoutes(db, SelectRoutesQuery, source, destination, departureDate, transportType, ticketPrice);
                 break;
             case 3:
                 cout << "Enter preferred transport type: ";
@@ -194,6 +329,33 @@ int main() {
                 findRoutesByTransport(db, SelectRoutesByTransportTypeQuery, transportType);
                 break;
             case 4:
+                cout << "Enter ticket price: ";
+                getline(cin, ticketPrice);
+                findRoutesByPrice(db, SelectRoutesByTicketPriceQuery, ticketPrice);
+                break;
+            case 5:
+                readInsertRouteParameters(
+                    source, 
+                    destination, 
+                    departureDate,
+                    arrivalDate, 
+                    transportType, 
+                    ticketPrice,
+                    distance,
+                    seatsAvaliable);
+                insertRoute(
+                    db, 
+                    InsertRouteQuery,
+                    source, 
+                    destination, 
+                    departureDate,
+                    arrivalDate, 
+                    transportType, 
+                    ticketPrice,
+                    distance,
+                    seatsAvaliable);
+                break;
+            case 6:
                 return 0;
             default:
                 exitWithError(db, "invalid operation");

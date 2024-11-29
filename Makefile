@@ -2,7 +2,7 @@ sqlite-build:
 	docker build -f docker/Dockerfile -t "sqlite-service" .
 
 sqlite-run: sqlite-build
-	docker run --rm -d -it --name sqlite-service -v "$(shell pwd):/app" sqlite-service
+	docker run -d --rm -it --name sqlite-service -v "$(shell pwd):/app" sqlite-service
 
 sqlite-exec:
 	docker exec -it sqlite-service /bin/sh

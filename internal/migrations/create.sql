@@ -23,7 +23,6 @@ CREATE TABLE routes (
   departure_time DATETIME NOT NULL,
   arrival_time DATETIME NOT NULL,
   seats_available INTEGER NOT NULL,
-  seats_sold INTEGER NOT NULL,
   ticket_price REAL NOT NULL,
   FOREIGN KEY (transport_type_id) REFERENCES transport_types (id),
   FOREIGN KEY (source_id) REFERENCES destinations (id),
