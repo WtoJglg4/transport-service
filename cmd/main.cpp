@@ -6,6 +6,7 @@
 #include <string>
 #include <locale>
 #include <codecvt>
+#include <regex>
 #include "queries.cpp"
 using namespace std;
 
@@ -16,6 +17,41 @@ void exitWithError(sqlite3* db, const string& message) {
     cerr << "error: " << message << ": " << sqlite3_errmsg(db) << endl;
     sqlite3_close(db);
     exit(EXIT_FAILURE);
+}
+
+bool isValidDate(const string& date) {
+    // Regexp for "dd.mm.yyyy"
+    regex dateRegex(R"(^(\d{2})\.(\d{2})\.(\d{4})$)");
+    smatch match;
+    // Check matching regexp
+    if (!regex_match(date, match, dateRegex)) {
+        return false;
+    }
+    // Get day, month, yearfrom string
+    int day = stoi(match[1].str());
+    int month = stoi(match[2].str());
+    int year = stoi(match[3].str());
+    // Check month
+    if (month < 1 || month > 12) {
+        return false;
+    }
+    // Number of days per month
+    const int daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    // Check leap year
+    bool isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    // Check max days per months
+    int maxDays = daysInMonth[month - 1];
+    if (month == 2 && isLeapYear) {
+        maxDays = 29; // February in leap year
+    }
+    // Check day
+    return day >= 1 && day <= maxDays;
+}
+
+// Checks if string is non-negative integer number
+bool isNonNegativeNumber(const string& str) {
+    regex numberRegex(R"(^\d+(\.\d+)?$)");
+    return regex_match(str, numberRegex);
 }
 
 // convertToSQLiteFormat converts date and time from "dd.mm.yyyy" to "yyyy-mm-dd"
@@ -35,10 +71,18 @@ void readSelectRouteParameters(string& source, string& destination, string& date
     getline(cin, destination);
     cout << "Enter preferred departure date (DD.MM.YYYY): ";
     getline(cin, date);
+    if (!isValidDate(date)) {
+        cerr << "invalid date format\n";
+        exit(1);
+    }
     cout << "Enter preferred transport type (or leave empty for any): ";
     getline(cin, transportType);
     cout << "Enter higher ticket price (or leave empty for any): ";
     getline(cin, ticketPrice);
+    if (!isNonNegativeNumber(ticketPrice)) {
+        cerr << "invalid price\n";
+        exit(1);
+    }
 }
 
 // readInsertRouteParameters prints a Menu and reads corresponding fields
@@ -57,16 +101,36 @@ void readInsertRouteParameters(
     getline(cin, destination);
     cout << "Enter departure date (DD.MM.YYYY): ";
     getline(cin, departureDate);
+    if (!isValidDate(departureDate)) {
+        cerr << "invalid date format\n";
+        exit(1);
+    }
     cout << "Enter arrival date (DD.MM.YYYY): ";
     getline(cin, arrivalDate);
+    if (!isValidDate(arrivalDate)) {
+        cerr << "invalid date format\n";
+        exit(1);
+    }
     cout << "Enter transport type: ";
     getline(cin, transportType);
     cout << "Enter ticket price: ";
     getline(cin, ticketPrice);
+    if (!isNonNegativeNumber(ticketPrice)) {
+        cerr << "invalid price\n";
+        exit(1);
+    }
     cout << "Enter distance: ";
     getline(cin, distance);
+    if (!isNonNegativeNumber(distance)) {
+        cerr << "invalid distance\n";
+        exit(1);
+    }
     cout << "Enter number of avaliable seats: ";
     getline(cin, seatsAvaliable);
+    if (!isNonNegativeNumber(seatsAvaliable)) {
+        cerr << "invalid number of seats\n";
+        exit(1);
+    }
 }
 
 // utf8StringLen counts number of symbols of UTF-8-formated string (not number of bytes)
@@ -224,7 +288,7 @@ void findRoutesByPrice(
 }
 
 // insertIfNotExists inserts value into table is value not exists
-void insertIfNotExists(sqlite3* db, const std::string& queryTemplate, const std::string& field) {
+void insertIfNotExists(sqlite3* db, const string& queryTemplate, const string& field) {
     sqlite3_stmt* stmt = nullptr;
     // Preparing query
     if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -329,6 +393,10 @@ int main() {
             case 4:
                 cout << "Enter ticket price: ";
                 getline(cin, ticketPrice);
+                if (!isNonNegativeNumber(ticketPrice)) {
+                    cerr << "invalid price\n";
+                    exit(1);
+                }
                 findRoutesByPrice(db, SelectRoutesByTicketPriceQuery, ticketPrice);
                 break;
             case 5:
