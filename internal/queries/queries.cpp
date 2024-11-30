@@ -2,7 +2,7 @@
 using namespace std;
 
 string SelectAllRoutesQuery = R"(
-        SELECT r.id, d1.name AS source, d2.name AS destination, r.departure_time, 
+        SELECT r.id, r.flight, d1.name AS source, d2.name AS destination, r.distance, r.departure_time, 
                r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
         FROM routes r
         JOIN destinations d1 ON r.source_id = d1.id
@@ -12,7 +12,7 @@ string SelectAllRoutesQuery = R"(
     )";
 
 string SelectRoutesQuery = R"(
-    SELECT r.id, d1.name AS source, d2.name AS destination, 
+    SELECT r.id,  r.flight, d1.name AS source, d2.name AS destination, r.distance,
     strftime('%d.%m.%Y %H:%M:%S', r.departure_time) AS departure_time, 
         r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
     FROM routes r
@@ -28,7 +28,7 @@ string SelectRoutesQuery = R"(
 )";
 
 string SelectRoutesByTransportTypeQuery = R"(
-    SELECT r.id, d1.name AS source, d2.name AS destination, 
+    SELECT r.id,  r.flight, d1.name AS source, d2.name AS destination, r.distance,
     strftime('%d.%m.%Y %H:%M:%S', r.departure_time) AS departure_time, 
         r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
     FROM routes r
@@ -40,7 +40,7 @@ string SelectRoutesByTransportTypeQuery = R"(
 )";
 
 string SelectRoutesByTicketPriceQuery = R"(
-    SELECT r.id, d1.name AS source, d2.name AS destination, 
+    SELECT r.id, r.flight, d1.name AS source, d2.name AS destination, r.distance,
     strftime('%d.%m.%Y %H:%M:%S', r.departure_time) AS departure_time, 
         r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
     FROM routes r
@@ -53,6 +53,7 @@ string SelectRoutesByTicketPriceQuery = R"(
 
 string InsertRouteQuery = R"(
 INSERT INTO routes (
+    flight,
     transport_type_id, 
     source_id, 
     destination_id, 
@@ -62,7 +63,8 @@ INSERT INTO routes (
     seats_available, 
     ticket_price
 )
-SELECT 
+SELECT
+    ?,
     (SELECT id FROM transport_types WHERE name = ?),
     (SELECT id FROM destinations WHERE name = ?),
     (SELECT id FROM destinations WHERE name = ?),

@@ -10,6 +10,17 @@
 #include "queries.cpp"
 using namespace std;
 
+/**********************************************************
+*                Технология Программирования              *
+***********************************************************
+*Project type: Win64 Console Application                  *
+*Project name: service.sln                                *
+*File name: main.cpp                                      *
+*Language:CPP, MSVS 2022                                  *
+*Programmers: Глазов В.B., Абдурахманов М.Р. М3О-309Б-22  *
+**********************************************************/
+
+
 const char* pathDB = "internal/db/database.db";
 
 // exitWithError prints an error with FAILURE code
@@ -87,6 +98,7 @@ void readSelectRouteParameters(string& source, string& destination, string& date
 
 // readInsertRouteParameters prints a Menu and reads corresponding fields
 void readInsertRouteParameters(
+    string& flight, 
     string& source, 
     string& destination, 
     string& departureDate, 
@@ -95,6 +107,8 @@ void readInsertRouteParameters(
     string& ticketPrice, 
     string& distance, 
     string& seatsAvaliable) {
+    cout << "Enter flight number: ";
+    getline(cin, flight);
     cout << "Enter source location: ";
     getline(cin, source);
     cout << "Enter destination location: ";
@@ -169,10 +183,10 @@ void printLine(vector<size_t> column_widths){
 
 // doAndPrintQueryResult do sql-request and prints it to stdout as result table
 void doAndPrintQueryResult(sqlite3_stmt *stmt) {
-    const int column_count = 8;
+    const int column_count = 10;
     vector<size_t> column_widths(column_count, 0);
     // Headers
-    const vector<string> headers = {"ID", "Source", "Destination", "Departure Time", 
+    const vector<string> headers = {"ID", "Flight", "Source", "Destination", "Distance", "Departure Time", 
                                     "Arrival Time", "Price", "Seats", "Transport"};
     // Get max columns widths
     for (size_t i = 0; i < headers.size(); ++i) {
@@ -312,6 +326,7 @@ void insertIfNotExists(sqlite3* db, const string& queryTemplate, const string& f
 void insertRoute(
     sqlite3* db, 
     string queryTemplate, 
+    string& flight,
     string& source, 
     string& destination, 
     string& departureDate, 
@@ -335,14 +350,15 @@ void insertRoute(
         exitWithError(db, "failed to prepare query");
     }
     // Bind parameters
-    if (sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 2, source.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 3, destination.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 4, distance.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 5, departureDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 6, arrivalDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 7, seatsAvaliable.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
-        sqlite3_bind_text(stmt, 8, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+    if (sqlite3_bind_text(stmt, 1, flight.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, transportType.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 3, source.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 4, destination.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 5, distance.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 6, departureDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 7, arrivalDateFormatted.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 8, seatsAvaliable.c_str(), -1, SQLITE_STATIC)!= SQLITE_OK ||
+        sqlite3_bind_text(stmt, 9, ticketPrice.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
         exitWithError(db, "failed to bind parameters");
     }
     // Do query
@@ -360,7 +376,7 @@ int main() {
         exitWithError(db, "cannot open database");
     }
     // Define query parameters
-    string source, destination, departureDate, arrivalDate, 
+    string source, flight, destination, departureDate, arrivalDate, 
     transportType, ticketPrice, distance, seatsAvaliable;
 
     cout << "Welcome to the Route Finder!\n";
@@ -401,6 +417,7 @@ int main() {
                 break;
             case 5:
                 readInsertRouteParameters(
+                    flight,
                     source, 
                     destination, 
                     departureDate,
@@ -412,6 +429,7 @@ int main() {
                 insertRoute(
                     db, 
                     InsertRouteQuery,
+                    flight,
                     source, 
                     destination, 
                     departureDate,

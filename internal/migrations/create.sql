@@ -16,6 +16,7 @@ CREATE TABLE destinations (
 
 CREATE TABLE routes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  flight TEXT NOT NULL,
   transport_type_id INTEGER NOT NULL,
   source_id INTEGER NOT NULL,
   destination_id INTEGER NOT NULL,

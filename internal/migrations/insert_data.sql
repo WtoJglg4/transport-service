@@ -22,6 +22,7 @@ VALUES
 
 INSERT INTO
   routes (
+    flight,
     transport_type_id,
     source_id,
     destination_id,
@@ -33,6 +34,7 @@ INSERT INTO
   )
 VALUES
   (
+    'SU1054',
     1,
     1,
     2,
@@ -43,6 +45,7 @@ VALUES
     5000
   ),
   (
+    'AA2397',
     2,
     1,
     3,
@@ -53,6 +56,7 @@ VALUES
     3000
   ),
   (
+    'LH718',
     3,
     2,
     4,
@@ -63,6 +67,7 @@ VALUES
     1500
   ),
   (
+    'ICE524',
     4,
     3,
     5,
@@ -73,6 +78,7 @@ VALUES
     7000
   ),
   (
+    'TGV8147',
     1,
     2,
     6,
@@ -83,6 +89,7 @@ VALUES
     1000
   ),
   (
+    'BUS34A',
     1,
     3,
     7,
@@ -93,6 +100,7 @@ VALUES
     15000
   ),
   (
+    'CO-ACH567',
     2,
     4,
     8,
@@ -103,6 +111,7 @@ VALUES
     4000
   ),
   (
+    'FERRY902',
     3,
     5,
     9,
@@ -113,6 +122,7 @@ VALUES
     2000
   ),
   (
+    'CRU1158',
     3,
     6,
     10,
@@ -123,6 +133,7 @@ VALUES
     300
   ),
   (
+    'ZAS-123',
     2,
     7,
     2,
