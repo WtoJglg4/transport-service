@@ -135,10 +135,10 @@ void readInsertRouteParameters(
     }
     cout << "Enter distance: ";
     getline(cin, distance);
-    if (!isNonNegativeNumber(distance)) {
-        cerr << "invalid distance\n";
-        exit(1);
-    }
+    // if (isNonNegativeNumber(distance)) {
+    //     cerr << "invalid distance\n";
+    //     exit(1);
+    // }
     cout << "Enter number of avaliable seats: ";
     getline(cin, seatsAvaliable);
     if (!isNonNegativeNumber(seatsAvaliable)) {
@@ -219,8 +219,19 @@ void doAndPrintQueryResult(sqlite3_stmt *stmt) {
     printLine(column_widths);
 }
 
-// showAllRoutes makes sql query statement for selecting all available routes
+// showAllRoutes makes sql query statement for selecting all routes
 void showAllRoutes(sqlite3* db, string queryTemplate) {
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare statement");
+    }
+    // Do query and print th results
+    doAndPrintQueryResult(stmt);
+    sqlite3_finalize(stmt);
+}
+
+// showAllAvaliableRoutes makes sql query statement for selecting all available routes (there is avaliable seats) 
+void showAllAvaliableRoutes(sqlite3* db, string queryTemplate) {
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         exitWithError(db, "failed to prepare statement");
@@ -274,6 +285,24 @@ void findRoutesByTransport(
     }
     // Bind parameters
     if (sqlite3_bind_text(stmt, 1, transportType.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        exitWithError(db, "failed to bind parameters");
+    }
+    // Do query and print th results
+    doAndPrintQueryResult(stmt);
+    sqlite3_finalize(stmt);
+}
+
+void findRoutesByDestination(
+    sqlite3* db, 
+    string queryTemplate, 
+    const string& destination) {
+    sqlite3_stmt* stmt;
+    // Inserting query parameters into query
+    if (sqlite3_prepare_v2(db, queryTemplate.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        exitWithError(db, "failed to prepare query");
+    }
+    // Bind parameters
+    if (sqlite3_bind_text(stmt, 1, destination.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
         exitWithError(db, "failed to bind parameters");
     }
     // Do query and print th results
@@ -386,11 +415,13 @@ int main() {
     while (true){
         cout << "Choose the operation:\n";
         cout << "Show all routes - 1\n";
-        cout << "Find route by parameters - 2\n";
-        cout << "Find route by transport type - 3\n";
-        cout << "Find route by ticket price - 4\n";
-        cout << "Insert a new route - 5\n";
-        cout << "Exit - 6\n";
+        cout << "Show all avaliable routes - 2\n";
+        cout << "Find route destination - 3\n";
+        cout << "Find route by parameters - 4\n";
+        cout << "Find route by transport type - 5\n";
+        cout << "Find route by ticket price - 6\n";
+        cout << "Insert a new route - 7\n";
+        cout << "Exit - 8\n";
         getline(cin, operatoinRaw);
         operation = atoi(operatoinRaw.c_str());
         switch (operation){
@@ -398,15 +429,23 @@ int main() {
                 showAllRoutes(db, SelectAllRoutesQuery);
                 break;
             case 2:
+                showAllAvaliableRoutes(db, SelectAllAvaliableRoutesQuery);
+                break; 
+            case 3:
+                cout << "Enter destination: ";
+                getline(cin, destination);
+                findRoutesByDestination(db, SelectRoutesByDestinationQuery, destination);
+                break;   
+            case 4:
                 readSelectRouteParameters(source, destination, departureDate, transportType, ticketPrice);
                 findRoutes(db, SelectRoutesQuery, source, destination, departureDate, transportType, ticketPrice);
                 break;
-            case 3:
+            case 5:
                 cout << "Enter preferred transport type: ";
                 getline(cin, transportType);
                 findRoutesByTransport(db, SelectRoutesByTransportTypeQuery, transportType);
                 break;
-            case 4:
+            case 6:
                 cout << "Enter ticket price: ";
                 getline(cin, ticketPrice);
                 if (!isNonNegativeNumber(ticketPrice)) {
@@ -415,7 +454,7 @@ int main() {
                 }
                 findRoutesByPrice(db, SelectRoutesByTicketPriceQuery, ticketPrice);
                 break;
-            case 5:
+            case 7:
                 readInsertRouteParameters(
                     flight,
                     source, 
@@ -439,7 +478,7 @@ int main() {
                     distance,
                     seatsAvaliable);
                 break;
-            case 6:
+            case 8:
                 return 0;
             default:
                 exitWithError(db, "invalid operation");

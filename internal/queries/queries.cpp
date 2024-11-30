@@ -9,7 +9,18 @@ string SelectAllRoutesQuery = R"(
         JOIN destinations d2 ON r.destination_id = d2.id
         JOIN transport_types t ON r.transport_type_id = t.id
         ORDER BY r.ticket_price ASC;
-    )";
+)";
+
+string SelectAllAvaliableRoutesQuery = R"(
+        SELECT r.id, r.flight, d1.name AS source, d2.name AS destination, r.distance, r.departure_time, 
+               r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
+        FROM routes r
+        JOIN destinations d1 ON r.source_id = d1.id
+        JOIN destinations d2 ON r.destination_id = d2.id
+        JOIN transport_types t ON r.transport_type_id = t.id
+        WHERE r.seats_available > 0
+        ORDER BY r.ticket_price ASC;
+)";
 
 string SelectRoutesQuery = R"(
     SELECT r.id,  r.flight, d1.name AS source, d2.name AS destination, r.distance,
@@ -19,9 +30,9 @@ string SelectRoutesQuery = R"(
     JOIN destinations d1 ON r.source_id = d1.id
     JOIN destinations d2 ON r.destination_id = d2.id
     JOIN transport_types t ON r.transport_type_id = t.id
-    WHERE r.departure_time >= ?
-    AND d1.name = ?
-    AND d2.name = ?
+    WHERE (r.departure_time >= ? OR ? = '') 
+    AND (d1.name = ? OR ? = '') 
+    AND (d2.name = ? OR ? = '')
     AND (t.name = ? OR ? = '')
     AND (r.ticket_price <= ? OR ? = '')
     ORDER BY r.departure_time ASC;
@@ -36,6 +47,18 @@ string SelectRoutesByTransportTypeQuery = R"(
     JOIN destinations d2 ON r.destination_id = d2.id
     JOIN transport_types t ON r.transport_type_id = t.id
     WHERE t.name = ?
+    ORDER BY t.name ASC;
+)";
+
+string SelectRoutesByDestinationQuery = R"(
+    SELECT r.id,  r.flight, d1.name AS source, d2.name AS destination, r.distance,
+    strftime('%d.%m.%Y %H:%M:%S', r.departure_time) AS departure_time, 
+        r.arrival_time, r.ticket_price, r.seats_available, t.name AS transport
+    FROM routes r
+    JOIN destinations d1 ON r.source_id = d1.id
+    JOIN destinations d2 ON r.destination_id = d2.id
+    JOIN transport_types t ON r.transport_type_id = t.id
+    WHERE d2.name = ?
     ORDER BY t.name ASC;
 )";
 
